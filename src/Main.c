@@ -29,7 +29,7 @@ int main()
             status = !status;
             startTime = GetTicks();
         }
-    };
+    }
 
     return 0;
 }
