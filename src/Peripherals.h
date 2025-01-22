@@ -63,12 +63,14 @@ enum
 enum
 {
     GPIO_CNF_INPUT_ANALOG,
-    GPIO_CNF_INPUT_FP,
-    GPIO_CNF_INPUT_PP
+    GPIO_CNF_INPUT_FLOATING,
+    GPIO_CNF_INPUT_PULL_DOWN,
+    GPIO_CNF_INPUT_PULL_UP,
 };
 
 void GPIOSetMode(Pin pin, uint8_t mode, uint8_t config);
 void GPIOWrite(Pin pin, bool value);
+bool GPIORead(Pin pin);
 
 
 

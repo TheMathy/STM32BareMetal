@@ -5,8 +5,9 @@
 
 int main()
 {
-    // Enable GPIOA
+    // Enable GPIOA and GPIOB
     RCC->APB2ENR |= BIT(GPIO_BANK_A + 2);
+    RCC->APB2ENR |= BIT(GPIO_BANK_B + 2);
     SysTickInit(8000000 / 1000);
 
     Pin greenLED = {GPIO_BANK_A, 6};
@@ -17,11 +18,26 @@ int main()
 
     GPIOWrite(blueLED, 1);
 
+    Pin button1 = {GPIO_BANK_B, 14};
+    Pin button2 = {GPIO_BANK_B, 15};
+
+    GPIOSetMode(button1, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOATING);
+    GPIOSetMode(button2, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOATING);
+    
     uint64_t startTime = GetTicks();
     bool status = 1;
 
     while (1)
     {
+        if (!GPIORead(button1) || !GPIORead(button2))
+        {
+            GPIOWrite(blueLED, 1);
+        }
+        else
+        {
+            GPIOWrite(blueLED, 0);
+        }
+
         if (GetTicks() > startTime + 500)
         {
             GPIOWrite(greenLED, status);
