@@ -9,7 +9,7 @@
 
 struct rcc
 {
-    volatile uint32_t CR, CFGR, CIR, APB2RSTR, APB1RSTR, AHBENR, APB2ENR, APB1ENR, BDCR, CSR, AHBSTR, CFGR2;
+    volatile uint32_t CR, CFGR, CIR, APB2RSTR, APB1RSTR, AHBENR, APB2ENR, APB1ENR, BDCR, CSR;
 };
 
 #define RCC ((struct rcc*) 0x040021000)
@@ -41,7 +41,7 @@ enum
     GPIO_BANK_D,
     GPIO_BANK_E,
     GPIO_BANK_F,
-    GPIO_BANK_G,
+    GPIO_BANK_G
 };
 
 enum
@@ -65,7 +65,7 @@ enum
     GPIO_CNF_INPUT_ANALOG,
     GPIO_CNF_INPUT_FLOATING,
     GPIO_CNF_INPUT_PULL_DOWN,
-    GPIO_CNF_INPUT_PULL_UP,
+    GPIO_CNF_INPUT_PULL_UP
 };
 
 void GPIOSetMode(Pin pin, uint8_t mode, uint8_t config);
@@ -86,3 +86,36 @@ struct systick
 void SysTickInit(uint32_t ticks);
 void SysTickHandler(void);
 uint64_t GetTicks();
+
+
+
+// Timer
+
+struct timer
+{
+    volatile uint32_t CR1, CR2, SMCR, DIER, SR, EGR, CCMR1, CCMR2, CCER, CNT, PSC, ARR, RESERVED, CCR1, CCR2, CCR3, CCR4, RESERVED2, DCR, DMAR; 
+};
+
+#define TIMER(number) ((struct timer*)(0x040000000 + 0x400 * (number)))
+
+enum
+{
+    TIMER_2,
+    TIMER_3,
+    TIMER_4
+};
+
+enum
+{
+    TIMER_CHANNEL_1,
+    TIMER_CHANNEL_2,
+    TIMER_CHANNEL_3,
+    TIMER_CHANNEL_4
+};
+
+void TimerConfig(uint8_t timerNumber, uint16_t prescaler, uint16_t autoReload);
+void TimerStart(uint8_t timerNumber);
+void TimerStop(uint8_t timerNumber);
+
+void TimerEnablePWM(uint8_t timerNumber, uint8_t channel);
+void TimerSetPWMDutyCycle(uint8_t timerNumber, uint8_t channel, uint16_t ccValue);

@@ -72,3 +72,56 @@ uint64_t GetTicks()
 {
     return s_Ticks;
 }
+
+void TimerConfig(uint8_t timerNumber, uint16_t prescaler, uint16_t autoReload)
+{
+    struct timer* timer = TIMER(timerNumber);
+
+    RCC->APB1ENR |= BIT(timerNumber);
+
+    timer->CR1 &= ~(BIT(0));
+    timer->CR1 &= ~(BIT(4));
+
+    timer->PSC = prescaler;
+    timer->ARR = autoReload - 1;
+}
+
+void TimerStart(uint8_t timerNumber)
+{
+    struct timer* timer = TIMER(timerNumber);
+    timer->CR1 |= BIT(0);
+}
+
+void TimerStop(uint8_t timerNumber)
+{
+    struct timer* timer = TIMER(timerNumber);
+    timer->CR1 &= ~(BIT(0));
+}
+
+void TimerEnablePWM(uint8_t timerNumber, uint8_t channel)
+{
+    struct timer* timer = TIMER(timerNumber);
+
+    if (channel == TIMER_CHANNEL_1 || channel == TIMER_CHANNEL_2)
+    {
+        timer->CCMR1 &= ~(7U << 4 + 8 * channel);
+        timer->CCMR1 |= (BIT(5 + 8 * channel) | BIT(6 + 8 * channel));
+        timer->CCMR1 |= BIT(3 + 8 * channel);
+    }
+    else
+    {
+        timer->CCMR2 &= ~(7U << 4 + 8 * (channel - 2));
+        timer->CCMR2 |= (BIT(5 + 8 * (channel - 2)) | BIT(6 + 8 * (channel - 2)));
+        timer->CCMR2 |= BIT(3 + 8 * (channel - 2));
+    }
+
+    timer->CCER &= ~(BIT(1 + channel * 4));
+    timer->CCER |= BIT(0 + channel * 4);
+}
+
+void TimerSetPWMDutyCycle(uint8_t timerNumber, uint8_t channel, uint16_t ccValue)
+{
+    struct timer* timer = TIMER(timerNumber);
+
+    *(&timer->CCR1 + channel) = ccValue;
+}
