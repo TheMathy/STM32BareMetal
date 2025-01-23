@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
+#define CPU_FREQUENCY 8000000
 #define BIT(x) (1UL << (x))
 
 // Reset and Clock Control
@@ -113,9 +114,34 @@ enum
     TIMER_CHANNEL_4
 };
 
-void TimerConfig(uint8_t timerNumber, uint16_t prescaler, uint16_t autoReload);
+void TimerEnable(uint8_t timerNumber, uint16_t prescaler, uint16_t autoReload);
 void TimerStart(uint8_t timerNumber);
 void TimerStop(uint8_t timerNumber);
 
 void TimerEnablePWM(uint8_t timerNumber, uint8_t channel);
 void TimerSetPWMDutyCycle(uint8_t timerNumber, uint8_t channel, uint16_t ccValue);
+
+
+
+// AFIO
+
+struct afio
+{
+    volatile uint32_t EVCR, MAPR, EXTICR1, EXTICR2, EXTICR3, EXTICR4, RESERVED, MAPR2;
+};
+
+#define AFIO ((struct afio*)(0x040010000))
+
+
+
+
+// USART
+
+struct usart
+{
+    volatile uint32_t SR, DR, BRR, CR1, CR2, CR3, GTPR;
+};
+
+void USARTEnable(uint8_t usartNumber, uint32_t baudRate);
+void USARTSendByte(uint8_t usartNumber, uint8_t byte);
+uint8_t USARTReceiveByte(uint8_t usartNumber);

@@ -3,8 +3,6 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-#define CPU_FREQUENCY 8000000
-
 int main()
 {
     // Enable GPIOA and GPIOB
@@ -24,7 +22,7 @@ int main()
     GPIOSetMode(button1, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOATING);
     GPIOSetMode(button2, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOATING);
 
-    TimerConfig(TIMER_3, 80, 200);
+    TimerEnable(TIMER_3, 80, 200);
     TimerEnablePWM(TIMER_3, TIMER_CHANNEL_1);
     TimerSetPWMDutyCycle(TIMER_3, TIMER_CHANNEL_1, 8);
     TimerStart(TIMER_3);
@@ -35,6 +33,18 @@ int main()
     bool button1Pressed = 0;
     bool button2Pressed = 0;
     bool status = 1;
+
+    // Enable AFIO and remap UART1 to PB6 and PB7
+    RCC->APB2ENR |= BIT(0);
+    AFIO->MAPR |= BIT(2);
+
+    Pin usart1TX = {GPIO_BANK_B, 6};
+    Pin usart1RX = {GPIO_BANK_B, 7};
+    
+    GPIOSetMode(usart1TX, GPIO_MODE_OUTPUT_10M, GPIO_CNF_OUTPUT_AF_PP);
+    GPIOSetMode(usart1RX, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOATING);
+    
+    USARTEnable(1, 9600);
 
     while (1)
     {
@@ -72,11 +82,13 @@ int main()
         
         
         // Blink blue LED
-        if (GetTicks() > startTime + 500)
+        if (GetTicks() > startTime + 500 || 1)
         {
+            uint8_t byte = USARTReceiveByte(1);
+            USARTSendByte(1, byte);
+
             GPIOWrite(blueLED, status);
             status = !status;
-
             startTime = GetTicks();
         }
     }
