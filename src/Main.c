@@ -44,7 +44,11 @@ int main()
     GPIOSetMode(usart1TX, GPIO_MODE_OUTPUT_10M, GPIO_CNF_OUTPUT_AF_PP);
     GPIOSetMode(usart1RX, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOATING);
     
-    USARTEnable(1, 9600);
+
+
+    USART usart1;
+    
+    USARTEnable(&usart1, USART_1, 9600);
 
     while (1)
     {
@@ -82,10 +86,11 @@ int main()
         
         
         // Blink blue LED
-        if (GetTicks() > startTime + 500 || 1)
+        if (GetTicks() > startTime + 500)
         {
-            uint8_t byte = USARTReceiveByte(1);
-            USARTSendByte(1, byte);
+            //USARTSendByte(1, byte);
+
+            USARTSendBuffer(&usart1, "Hello There\r\n", 13);
 
             GPIOWrite(blueLED, status);
             status = !status;

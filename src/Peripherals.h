@@ -2,6 +2,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #define CPU_FREQUENCY 8000000
 #define BIT(x) (1UL << (x))
@@ -137,11 +138,25 @@ struct afio
 
 // USART
 
-struct usart
+enum
 {
-    volatile uint32_t SR, DR, BRR, CR1, CR2, CR3, GTPR;
+    USART_1,
+    USART_2,
+    USART_3
 };
 
-void USARTEnable(uint8_t usartNumber, uint32_t baudRate);
-void USARTSendByte(uint8_t usartNumber, uint8_t byte);
-uint8_t USARTReceiveByte(uint8_t usartNumber);
+typedef struct USARTRegisters
+{
+    volatile uint32_t SR, DR, BRR, CR1, CR2, CR3, GTPR;
+} USARTRegisters;
+
+typedef struct USART
+{
+    USARTRegisters* registers;
+} USART;
+
+void USARTEnable(USART* usart, uint8_t usartNumber, uint32_t baudRate);
+void USARTSendByte(const USART* usart, uint8_t byte);
+uint8_t USARTReceiveByte(const USART* usart);
+
+void USARTSendBuffer(const USART* usart, void* buffer, size_t bufferSize);

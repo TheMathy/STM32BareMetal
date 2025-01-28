@@ -126,67 +126,65 @@ void TimerSetPWMDutyCycle(uint8_t timerNumber, uint8_t channel, uint16_t ccValue
     *(&timer->CCR1 + channel) = ccValue;
 }
 
-void USARTEnable(uint8_t usartNumber, uint32_t baudRate)
+void USARTEnable(USART* usart, uint8_t usartNumber, uint32_t baudRate)
 {
-    struct usart* usart;
+    if (!usart)
+        return;
 
-    if (usartNumber == 1)
+    if (usartNumber == USART_1)
     {
         RCC->APB2ENR |= BIT(14);
-        usart = (struct usart*)(0x040013800);
+        usart->registers = (struct USARTRegisters*)(0x040013800);
     }
-    else if (usartNumber == 2)
+    else if (usartNumber == USART_2)
     {
-        usart = (struct usart*)(0x040004400);
+        usart->registers = (struct USARTRegisters*)(0x040004400);
         RCC->APB1ENR |= BIT(17);
     }
-    else if (usartNumber == 3)
+    else if (usartNumber == USART_3)
     {
-        usart = (struct usart*)(0x040004800);
+        usart->registers = (struct USARTRegisters*)(0x040004800);
         RCC->APB1ENR |= BIT(18);
     }
     else
+    {
+        usart->registers = NULL;
         return;
-    
-    usart->CR1 = 0;
-    usart->BRR = CPU_FREQUENCY / baudRate;
-    usart->CR1 |= BIT(13) | BIT(2) | BIT(3);
+    }
+
+    usart->registers->CR1 = 0;
+    usart->registers->BRR = CPU_FREQUENCY / baudRate;
+    usart->registers->CR1 |= BIT(13) | BIT(2) | BIT(3);
 }
 
-void USARTSendByte(uint8_t usartNumber, uint8_t byte)
+void USARTSendByte(const USART* usart, uint8_t byte)
 {
-    struct usart* usart;
+    // Set byte to TDR
+    usart->registers->DR = byte;
 
-    if (usartNumber == 1)
-        usart = (struct usart*)(0x040013800);
-    else if (usartNumber == 2)
-        usart = (struct usart*)(0x040004400);
-    else if (usartNumber == 3)
-        usart = (struct usart*)(0x040004800);
-    else
-        return;
-
-    usart->DR = byte;
-    
-    while (!(usart->SR & (1 << 6)));
+    // Wait for date to be sent
+    while (!(usart->registers->SR & BIT(6)));
 }
 
-uint8_t USARTReceiveByte(uint8_t usartNumber)
+uint8_t USARTReceiveByte(const USART* usart)
 {
-    struct usart* usart;
-
-    if (usartNumber == 1)
-        usart = (struct usart*)(0x040013800);
-    else if (usartNumber == 2)
-        usart = (struct usart*)(0x040004400);
-    else if (usartNumber == 3)
-        usart = (struct usart*)(0x040004800);
-    else
-        return 0;
-
-    while (!(usart->SR & (1 << 5)));
+    // Wait for date in data register
+    while (!(usart->registers->SR & BIT(5)));
             
-    uint8_t byte = usart->DR;
-
+    uint8_t byte = usart->registers->DR;
     return byte;
+}
+
+void USARTSendBuffer(const USART* usart, void* buffer, size_t bufferSize)
+{
+    for (size_t i = 0; i < bufferSize; i++)
+    {
+        // Wait for data transfer to the shift register
+        while (!(usart->registers->SR & BIT(7)));
+
+        usart->registers->DR = ((uint8_t*)buffer)[i];
+    }
+
+    // Wait for transmission to complete
+    while (!(usart->registers->SR & BIT(6)));
 }
