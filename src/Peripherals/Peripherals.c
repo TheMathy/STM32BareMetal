@@ -1,4 +1,11 @@
-#include "Peripherals.h"
+#include "Peripherals/Peripherals.h"
+
+struct gpio
+{
+    volatile uint32_t CR[2], IDR, ODR, BSRR, BRR, LCKR;
+};
+
+#define GPIO(bank) ((struct gpio*)(0x040010800 + 0x400 * (bank)))
 
 void GPIOSetMode(Pin pin, uint8_t mode, uint8_t config)
 {
@@ -51,6 +58,35 @@ bool GPIORead(Pin pin)
     return (gpio->IDR & (1 << pin.number));
 }
 
+
+
+struct nvic
+{
+    volatile uint32_t SETENA[8], RESERVED1[24], CLRENA[8], RESERVED2[24], SETPEND[8], RESERVED3[24], CLRPEND[8], RESERVED4[24], ACTIVE[8], RESERVED5[56], PRI[60];
+};
+
+#define NVIC ((struct nvic*)(0xe000e100))
+
+
+void NVICEnableInterrupt(uint8_t positon)
+{
+    NVIC->SETENA[positon / 32] = BIT(positon % 32);
+}
+
+void NVICDisableInterrupt(uint8_t positon)
+{
+    NVIC->CLRENA[positon / 32] = BIT(positon % 32);
+}
+
+
+
+struct systick
+{
+    volatile uint32_t CTRL, LOAD, VAL, CALIB;
+};
+
+#define SYSTICK ((struct systick*)(0xe000e010))
+
 static volatile uint64_t s_Ticks;
 
 void SysTickInit(uint32_t ticks)
@@ -72,6 +108,15 @@ uint64_t GetTicks()
 {
     return s_Ticks;
 }
+
+
+
+struct timer
+{
+    volatile uint32_t CR1, CR2, SMCR, DIER, SR, EGR, CCMR1, CCMR2, CCER, CNT, PSC, ARR, RESERVED, CCR1, CCR2, CCR3, CCR4, RESERVED2, DCR, DMAR; 
+};
+
+#define TIMER(number) ((struct timer*)(0x040000000 + 0x400 * (number)))
 
 void TimerEnable(uint8_t timerNumber, uint16_t prescaler, uint16_t autoReload)
 {
@@ -126,65 +171,3 @@ void TimerSetPWMDutyCycle(uint8_t timerNumber, uint8_t channel, uint16_t ccValue
     *(&timer->CCR1 + channel) = ccValue;
 }
 
-void USARTEnable(USART* usart, uint8_t usartNumber, uint32_t baudRate)
-{
-    if (!usart)
-        return;
-
-    if (usartNumber == USART_1)
-    {
-        RCC->APB2ENR |= BIT(14);
-        usart->registers = (struct USARTRegisters*)(0x040013800);
-    }
-    else if (usartNumber == USART_2)
-    {
-        usart->registers = (struct USARTRegisters*)(0x040004400);
-        RCC->APB1ENR |= BIT(17);
-    }
-    else if (usartNumber == USART_3)
-    {
-        usart->registers = (struct USARTRegisters*)(0x040004800);
-        RCC->APB1ENR |= BIT(18);
-    }
-    else
-    {
-        usart->registers = NULL;
-        return;
-    }
-
-    usart->registers->CR1 = 0;
-    usart->registers->BRR = CPU_FREQUENCY / baudRate;
-    usart->registers->CR1 |= BIT(13) | BIT(2) | BIT(3);
-}
-
-void USARTSendByte(const USART* usart, uint8_t byte)
-{
-    // Set byte to TDR
-    usart->registers->DR = byte;
-
-    // Wait for date to be sent
-    while (!(usart->registers->SR & BIT(6)));
-}
-
-uint8_t USARTReceiveByte(const USART* usart)
-{
-    // Wait for date in data register
-    while (!(usart->registers->SR & BIT(5)));
-            
-    uint8_t byte = usart->registers->DR;
-    return byte;
-}
-
-void USARTSendBuffer(const USART* usart, void* buffer, size_t bufferSize)
-{
-    for (size_t i = 0; i < bufferSize; i++)
-    {
-        // Wait for data transfer to the shift register
-        while (!(usart->registers->SR & BIT(7)));
-
-        usart->registers->DR = ((uint8_t*)buffer)[i];
-    }
-
-    // Wait for transmission to complete
-    while (!(usart->registers->SR & BIT(6)));
-}

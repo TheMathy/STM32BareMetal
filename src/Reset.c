@@ -1,4 +1,4 @@
-#include "Peripherals.h"
+#include "Peripherals/Peripherals.h"
 
 extern int main();
 
@@ -22,6 +22,13 @@ __attribute__((naked, noreturn)) void _reset(void)
 
 extern void _estack(void);
 
+void USART1IRQHandler();
+void USART2IRQHandler();
+void USART3IRQHandler();
+
 __attribute__((section(".vectors"))) void (*const tab[16 + 68])(void) = {
-    _estack, _reset, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SysTickHandler
+    _estack, _reset, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SysTickHandler,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, USART1IRQHandler, USART2IRQHandler, USART3IRQHandler
 };

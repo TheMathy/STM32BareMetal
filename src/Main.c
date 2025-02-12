@@ -1,13 +1,21 @@
-#include "Peripherals.h"
+#include "Peripherals/Peripherals.h"
+#include "Peripherals/UART.h"
 
 #include <inttypes.h>
 #include <stdbool.h>
+
+void USARTReceiveComplete(UART* usart)
+{
+    UARTTransmitInterrupt(usart, (uint8_t*)"Hello\n", 6);
+    UARTReceiveInterrupt(usart, usart->RXBuffer, usart->RXBufferSize);
+}
 
 int main()
 {
     // Enable GPIOA and GPIOB
     RCC->APB2ENR |= BIT(GPIO_BANK_A + 2);
     RCC->APB2ENR |= BIT(GPIO_BANK_B + 2);
+
     SysTickInit(CPU_FREQUENCY / 1000);
 
     Pin greenLED = {GPIO_BANK_A, 6};
@@ -27,13 +35,6 @@ int main()
     TimerSetPWMDutyCycle(TIMER_3, TIMER_CHANNEL_1, 8);
     TimerStart(TIMER_3);
 
-    uint64_t startTime = GetTicks();
-    uint32_t current = 8;
-
-    bool button1Pressed = 0;
-    bool button2Pressed = 0;
-    bool status = 1;
-
     // Enable AFIO and remap UART1 to PB6 and PB7
     RCC->APB2ENR |= BIT(0);
     AFIO->MAPR |= BIT(2);
@@ -43,12 +44,20 @@ int main()
     
     GPIOSetMode(usart1TX, GPIO_MODE_OUTPUT_10M, GPIO_CNF_OUTPUT_AF_PP);
     GPIOSetMode(usart1RX, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOATING);
-    
 
-
-    USART usart1;
+    UART* uart1 = UARTInit(UART_NUMBER_1, 115200);
     
-    USARTEnable(&usart1, USART_1, 9600);
+    UARTSetReceiveCompleteCallback(uart1, USARTReceiveComplete);
+
+    uint8_t buffer[8];
+    UARTReceiveInterrupt(uart1, buffer, 8);
+
+    uint64_t startTime = GetTicks();
+    uint32_t current = 8;
+
+    bool button1Pressed = 0;
+    bool button2Pressed = 0;
+    bool status = 1;
 
     while (1)
     {
@@ -88,10 +97,6 @@ int main()
         // Blink blue LED
         if (GetTicks() > startTime + 500)
         {
-            //USARTSendByte(1, byte);
-
-            USARTSendBuffer(&usart1, "Hello There\r\n", 13);
-
             GPIOWrite(blueLED, status);
             status = !status;
             startTime = GetTicks();

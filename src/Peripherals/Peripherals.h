@@ -20,20 +20,11 @@ struct rcc
 
 // GPIO
 
-struct Pin
+typedef struct Pin
 {
     uint8_t bank;
     uint8_t number;
-};
-
-typedef struct Pin Pin;
-
-struct gpio
-{
-    volatile uint32_t CR[2], IDR, ODR, BSRR, BRR, LCKR;
-};
-
-#define GPIO(bank) ((struct gpio*)(0x040010800 + 0x400 * (bank)))
+} Pin;
 
 enum
 {
@@ -76,14 +67,25 @@ bool GPIORead(Pin pin);
 
 
 
-// SysTick
+// AFIO
 
-struct systick
+struct afio
 {
-    volatile uint32_t CTRL, LOAD, VAL, CALIB;
+    volatile uint32_t EVCR, MAPR, EXTICR1, EXTICR2, EXTICR3, EXTICR4, RESERVED, MAPR2;
 };
 
-#define SYSTICK ((struct systick*)(0xe000e010))
+#define AFIO ((struct afio*)(0x040010000))
+
+
+
+// NVIC
+
+void NVICEnableInterrupt(uint8_t positon);
+void NVICDisableInterrupt(uint8_t positon);
+
+
+
+// SysTick
 
 void SysTickInit(uint32_t ticks);
 void SysTickHandler(void);
@@ -92,13 +94,6 @@ uint64_t GetTicks();
 
 
 // Timer
-
-struct timer
-{
-    volatile uint32_t CR1, CR2, SMCR, DIER, SR, EGR, CCMR1, CCMR2, CCER, CNT, PSC, ARR, RESERVED, CCR1, CCR2, CCR3, CCR4, RESERVED2, DCR, DMAR; 
-};
-
-#define TIMER(number) ((struct timer*)(0x040000000 + 0x400 * (number)))
 
 enum
 {
@@ -123,40 +118,3 @@ void TimerEnablePWM(uint8_t timerNumber, uint8_t channel);
 void TimerSetPWMDutyCycle(uint8_t timerNumber, uint8_t channel, uint16_t ccValue);
 
 
-
-// AFIO
-
-struct afio
-{
-    volatile uint32_t EVCR, MAPR, EXTICR1, EXTICR2, EXTICR3, EXTICR4, RESERVED, MAPR2;
-};
-
-#define AFIO ((struct afio*)(0x040010000))
-
-
-
-
-// USART
-
-enum
-{
-    USART_1,
-    USART_2,
-    USART_3
-};
-
-typedef struct USARTRegisters
-{
-    volatile uint32_t SR, DR, BRR, CR1, CR2, CR3, GTPR;
-} USARTRegisters;
-
-typedef struct USART
-{
-    USARTRegisters* registers;
-} USART;
-
-void USARTEnable(USART* usart, uint8_t usartNumber, uint32_t baudRate);
-void USARTSendByte(const USART* usart, uint8_t byte);
-uint8_t USARTReceiveByte(const USART* usart);
-
-void USARTSendBuffer(const USART* usart, void* buffer, size_t bufferSize);
