@@ -242,6 +242,38 @@ UARTStatus UARTTransmitInterrupt(UART* uart, uint8_t* buffer, size_t bufferSize)
     return UART_OK;
 }
 
+UARTStatus UARTEnableDMAReceive(UART* uart)
+{
+    uart->RXStatus = 1;
+    uart->registers->CR3 |= BIT(6);
+
+    return UART_OK;
+}
+
+UARTStatus UARTDisableDMAReceive(UART* uart)
+{
+    uart->RXStatus = 0;
+    uart->registers->CR3 &= ~BIT(6);
+
+    return UART_OK;
+}
+
+UARTStatus UARTEnableDMATransmit(UART* uart)
+{
+    uart->TXStatus = 1;
+    uart->registers->CR3 |= BIT(7);
+
+    return UART_OK;
+}
+
+UARTStatus UARTDisableDMATransmit(UART* uart)
+{
+    uart->TXStatus = 0;
+    uart->registers->CR3 &= ~BIT(7);
+
+    return UART_OK;
+}
+
 void UARTSetReceiveCompleteCallback(UART* uart, UARTCallback callback)
 {
     uart->USARTReceiveCallback = callback;

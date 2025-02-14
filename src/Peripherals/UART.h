@@ -1,3 +1,5 @@
+#pragma once
+
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -44,16 +46,23 @@ typedef struct UART
 
 typedef void (*UARTCallback)(UART*);
 
-UART* UARTInit(UARTNumber usartNumber, uint32_t baudRate);
+UART* UARTInit(UARTNumber uartNumber, uint32_t baudRate);
 
-UARTStatus UARTReceiveByte(const UART* usart, uint8_t* byte);
-UARTStatus UARTTransmitByte(const UART* usart, uint8_t byte);
+UARTStatus UARTReceiveByte(const UART* uart, uint8_t* byte);
+UARTStatus UARTTransmitByte(const UART* uart, uint8_t byte);
 
-UARTStatus UARTReceive(const UART* usart, uint8_t* buffer, uint16_t bufferSize);
-UARTStatus UARTTransmit(const UART* usart, uint8_t* buffer, uint16_t bufferSize);
+UARTStatus UARTReceive(const UART* uart, uint8_t* buffer, uint16_t bufferSize);
+UARTStatus UARTTransmit(const UART* uart, uint8_t* buffer, uint16_t bufferSize);
 
-UARTStatus UARTReceiveInterrupt(UART* usart, uint8_t* buffer, uint16_t bufferSize);
-UARTStatus UARTTransmitInterrupt(UART* usart, uint8_t* buffer, size_t bufferSize);
+UARTStatus UARTReceiveInterrupt(UART* uart, uint8_t* buffer, uint16_t bufferSize);
+UARTStatus UARTTransmitInterrupt(UART* uart, uint8_t* buffer, size_t bufferSize);
 
-void UARTSetReceiveCompleteCallback(UART* usart, UARTCallback callback);
-void UARTSetTransmitCompleteCallback(UART* usart, UARTCallback callback);
+// When DMA Receive/Transmit is enabled you should not use any other Receive/Transmit method
+// Received/Transmited data should be handled with DMA
+UARTStatus UARTEnableDMAReceive(UART* uart);
+UARTStatus UARTDisableDMAReceive(UART* uart);
+UARTStatus UARTEnableDMATransmit(UART* uart);
+UARTStatus UARTDisableDMATransmit(UART* uart);
+
+void UARTSetReceiveCompleteCallback(UART* uart, UARTCallback callback);
+void UARTSetTransmitCompleteCallback(UART* uart, UARTCallback callback);

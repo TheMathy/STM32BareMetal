@@ -1,13 +1,28 @@
 #include "Peripherals/Peripherals.h"
 #include "Peripherals/UART.h"
+#include "Peripherals/DMA.h"
 
 #include <inttypes.h>
 #include <stdbool.h>
+#include <string.h>
 
-void USARTReceiveComplete(UART* usart)
+static uint8_t rxBuffer[8];
+static uint8_t buffer[8];
+static bool dataReady = 0;
+
+void DMA1HalfTransferCallback(DMAChannelNumber dmaChannelNumber)
 {
-    UARTTransmitInterrupt(usart, (uint8_t*)"Hello\n", 6);
-    UARTReceiveInterrupt(usart, usart->RXBuffer, usart->RXBufferSize);
+    if (dmaChannelNumber == DMA_CHANNEL_5)
+        memcpy(buffer, rxBuffer, 4);
+}
+
+void DMA1TransferCompleteCallback(DMAChannelNumber dmaChannelNumber)
+{
+    if (dmaChannelNumber == DMA_CHANNEL_5)
+    {
+        memcpy(&buffer[4], &rxBuffer[4], 4);
+        dataReady = 1;
+    }
 }
 
 int main()
@@ -44,13 +59,22 @@ int main()
     
     GPIOSetMode(usart1TX, GPIO_MODE_OUTPUT_10M, GPIO_CNF_OUTPUT_AF_PP);
     GPIOSetMode(usart1RX, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOATING);
+    
 
     UART* uart1 = UARTInit(UART_NUMBER_1, 115200);
-    
-    UARTSetReceiveCompleteCallback(uart1, USARTReceiveComplete);
 
-    uint8_t buffer[8];
-    UARTReceiveInterrupt(uart1, buffer, 8);
+    // DMA
+    DMAInit(DMA_NUMBER_1);
+    DMAConfigChannel(DMA_NUMBER_1, DMA_CHANNEL_5, (void*)&(uart1->registers->DR), rxBuffer, 8, DMA_DIRECTION_PER_TO_MEM, 1);
+
+    DMAEnableChannel(DMA_NUMBER_1, DMA_CHANNEL_5);
+    DMASetHalfTransferCallback(DMA_NUMBER_1, DMA1HalfTransferCallback);
+    DMASetTransferCompleteCallback(DMA_NUMBER_1, DMA1TransferCompleteCallback);
+
+    DMAConfigChannel(DMA_NUMBER_1, DMA_CHANNEL_4, (void*)&(uart1->registers->DR), buffer, 8, DMA_DIRECTION_MEM_TO_PER, 0);
+
+    UARTEnableDMAReceive(uart1);
+    UARTEnableDMATransmit(uart1);
 
     uint64_t startTime = GetTicks();
     uint32_t current = 8;
@@ -97,9 +121,17 @@ int main()
         // Blink blue LED
         if (GetTicks() > startTime + 500)
         {
-            GPIOWrite(blueLED, status);
+            //GPIOWrite(blueLED, status);
             status = !status;
             startTime = GetTicks();
+        }
+
+        if (dataReady)
+        {
+            DMADisableChannel(DMA_NUMBER_1, DMA_CHANNEL_4);
+            DMAConfigChannel(DMA_NUMBER_1, DMA_CHANNEL_4, (void*)&(uart1->registers->DR), buffer, 8, DMA_DIRECTION_MEM_TO_PER, 0);
+            DMAEnableChannel(DMA_NUMBER_1, DMA_CHANNEL_4);
+            dataReady = 0;
         }
     }
 
